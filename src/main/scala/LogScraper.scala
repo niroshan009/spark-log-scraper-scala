@@ -1,16 +1,16 @@
-import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.functions.{col, trim}
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
 import scala.collection.mutable
 import scala.util.matching.Regex
-
 import org.apache.spark.sql.types._
 
 
 
 object LogScraper {
 
-  def main(args: Array[String]) = {
+  def main() = {
+//  def main(args: Array[String]) = {
 
     print("hello world")
 
@@ -34,15 +34,13 @@ object LogScraper {
         .or(col("value")
           .contains("XYZ_DATASET")))
 
-    val filtered = filteredDataset.coalesce(1)
-      .collectAsList()
-      .stream()
+    val filtered : List[String] = filteredDataset.rdd.coalesce(1)
       .map { e =>
         val doesPatternExisit = titlePattern.findFirstIn(e).isDefined
         val formattedString = ""
         if (doesPatternExisit) {
           lastDataset = extractPattern.findFirstMatchIn(e) match {
-            case Some(matched) => matched.group(1)
+            case Some(matched) => matched.group(1).asInstanceOf[String]
             case None => ""
           }
           titlePattern.findFirstIn(e).get
@@ -55,15 +53,15 @@ object LogScraper {
             .concat("}")
 
         }
-      }.toList
+      }.collect().toList
 
-    filtered.forEach { e =>
+    filtered.foreach { e =>
       val isTitleRow = titlePattern.findFirstIn(e).isDefined
       if (isTitleRow) {
         titlePattern.findFirstMatchIn(e) match {
           case Some(matchedValue) => {
 
-            val title = matchedValue.group(1);
+            val title = matchedValue.group(1).asInstanceOf[String];
             println("title:" + title)
             if (!groupedDataset.contains(title)) {
               groupedDataset.put(title, List.empty[String])
@@ -74,10 +72,11 @@ object LogScraper {
       else {
         entryPattern.findFirstMatchIn(e) match {
           case Some(matchedValue) => {
-            val dataRow = matchedValue.group(1)
-            val datasetKey = matchedValue.group(1).split("\\|").last;
+            val dataRow = matchedValue.group(1).asInstanceOf[String]
+            val datasetKey = matchedValue.group(1).asInstanceOf[String].split("\\|").last;
             groupedDataset.get(datasetKey) match {
               case Some(xs: List[String]) => groupedDataset(datasetKey) = xs :+ dataRow
+              case None => print("non")
             }
           }
         }
@@ -86,7 +85,8 @@ object LogScraper {
 
     groupedDataset.foreach { case (k, v) =>
 
-      val columnNames = v.head.split("\\|")
+
+      val columnNames : List[String]= v.head.split("\\|").map(_.trim).toList
       val rows = v.tail.map(_.split("\\|")).map(fields => Row.fromSeq(fields))
       val schema = StructType(columnNames.map(name => StructField(name, StringType)))
 

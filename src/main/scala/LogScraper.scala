@@ -14,6 +14,11 @@ object LogScraper {
 
     print("hello world")
 
+    val spark = SparkSession.builder()
+      .appName("Log Scraper")
+      .master("local[*]")
+      .getOrCreate()
+
     val titlePattern = """XYZ_DATASET: \{(.*?)\}""".r
     val entryPattern = """XYZ_DATA_ENTRY: \{(.*?)\}""".r
     val extractPattern: Regex = """.*:\s*\{([^}]*)\}""".r;

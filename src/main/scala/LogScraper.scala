@@ -14,11 +14,9 @@ object LogScraper {
 //  def main() = {
   def main(args: Array[String]) = {
 
-    print("hello world")
-    println("Please enter the absolute path to the log file:")
-    val logFilePath = StdIn.readLine();
+    val logFilePath =  args(0) //args[0].toString();
 
-    if(logFilePath == null || logFilePath.length <= 0) {
+    if(logFilePath == null) {
       throw new Exception("Invalid log file path")
     }
 
@@ -33,6 +31,8 @@ object LogScraper {
     var lastDataset = ""
 
     val groupedDataset = new mutable.HashMap[String, List[String]];
+
+    println("Loading file from path: "+ logFilePath)
 
     val lines: Dataset[String] = spark.read.textFile(logFilePath)
 
@@ -91,9 +91,8 @@ object LogScraper {
       }
     }
 
+    println("****STARTING TO CREATE DATASETS****")
     groupedDataset.foreach { case (k, v) =>
-
-
       val columnNames : List[String]= v.head.split("\\|").map(_.trim).toList
       val rows = v.tail.map(_.split("\\|")).map(fields => Row.fromSeq(fields))
       val schema = StructType(columnNames.map(name => StructField(name, StringType)))
@@ -103,7 +102,7 @@ object LogScraper {
       df.createOrReplaceTempView(k)
     }
 
-    println("****FINISHED******")
+    println("****FINISHED CREATING DATASETS******")
 
   }
 }

@@ -5,14 +5,22 @@ import scala.collection.mutable
 import scala.util.matching.Regex
 import org.apache.spark.sql.types._
 
+import scala.io.StdIn
+
 
 
 object LogScraper {
 
-  def main() = {
-//  def main(args: Array[String]) = {
+//  def main() = {
+  def main(args: Array[String]) = {
 
     print("hello world")
+    println("Please enter the absolute path to the log file:")
+    val logFilePath = StdIn.readLine();
+
+    if(logFilePath == null || logFilePath.length <= 0) {
+      throw new Exception("Invalid log file path")
+    }
 
     val spark = SparkSession.builder()
       .appName("Log Scraper")
@@ -26,7 +34,7 @@ object LogScraper {
 
     val groupedDataset = new mutable.HashMap[String, List[String]];
 
-    val lines: Dataset[String] = spark.read.textFile("./log.txt")
+    val lines: Dataset[String] = spark.read.textFile(logFilePath)
 
     val filteredDataset: Dataset[String] = lines
       .filter(col("value")
@@ -95,7 +103,7 @@ object LogScraper {
       df.createOrReplaceTempView(k)
     }
 
-    print("****FINISHED******")
+    println("****FINISHED******")
 
   }
 }
